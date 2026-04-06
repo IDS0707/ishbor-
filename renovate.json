@@ -1,0 +1,14 @@
+# Rules for building master branch
+cron:
+
+# Rules for pull requests
+rules:
+  - type: allow
+    actions:
+      - pull_requests
+  - type: allow
+    actions:
+      - push
+    branches:
+      - main
+      - develop

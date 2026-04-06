@@ -1,0 +1,25 @@
+# Analysis options for Dart/Flutter
+
+# Use recommended rules
+include: package:flutter_lints/flutter.yaml
+
+linter:
+  rules:
+    - prefer_const_constructors
+    - prefer_const_literals_to_create_immutables
+    - avoid_print
+    - avoid_returning_null
+    - prefer_final_fields
+    - prefer_final_in_for_each
+    - sort_pub_dependencies
+    - sort_child_properties_last
+    - unnecessary_statements
+    - always_put_required_named_parameters_first
+
+analyzer:
+  exclude:
+    - "**/*.g.dart"
+    - "**/*.config.dart"
+  errors:
+    missing_required_param: error
+    missing_return: error

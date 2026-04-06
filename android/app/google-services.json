@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "139253644280",
+    "firebase_url": "https://ishbor-e94bf-default-rtdb.europe-west1.firebasedatabase.app",
+    "project_id": "ishbor-e94bf",
+    "storage_bucket": "ishbor-e94bf.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:139253644280:android:16e7db446f9990358fb40d",
+        "android_client_info": {
+          "package_name": "com.example.ishbor"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDGuX1E0XVA1taoCJBJbB6WG6TTQBQ5FqQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
