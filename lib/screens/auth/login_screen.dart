@@ -1,13 +1,16 @@
-﻿import 'package:firebase_auth/firebase_auth.dart';
+﻿import 'dart:async';
+
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import '../../../core/app_locale.dart';
 import '../../../core/l10n.dart';
 import '../../../services/auth_service.dart';
+import '../../../services/notification_service.dart';
 import '../../../services/role_service.dart';
 import '../../../services/user_service.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// UNIFIED AUTH SCREEN  — Sign In / Sign Up  (phone + password, NO Google)
+// UNIFIED AUTH SCREEN  — Sign In / Sign Up  (phone + password)
 // ─────────────────────────────────────────────────────────────────────────────
 
 class LoginScreen extends StatefulWidget {
@@ -125,6 +128,8 @@ class _LoginScreenState extends State<LoginScreen>
   /// Navigate to the correct panel based on saved role, or role-select if none.
   Future<void> _navigateAfterAuth() async {
     if (!mounted) return;
+    // Save/refresh FCM token so this device receives push notifications
+    unawaited(NotificationService.saveToken());
     final role = await RoleService.getRole();
     if (!mounted) return;
     if (role == 'employer') {
@@ -198,7 +203,10 @@ class _LoginScreenState extends State<LoginScreen>
   // ── Firebase error code → localized message ───────────────────────────────
   String _firebaseErrorMsg(String code) {
     switch (code) {
+      // Wrong credentials (modern Firebase SDK collapses user-not-found +
+      // wrong-password into a single code for security reasons)
       case 'invalid-credential':
+      case 'INVALID_LOGIN_CREDENTIALS':
       case 'invalid-email':
       case 'user-mismatch':
         return _t('auth_invalid_credential');
@@ -365,24 +373,7 @@ class _LoginScreenState extends State<LoginScreen>
             ),
             validator: _passVal,
           ),
-          const SizedBox(height: 4),
-          Align(
-            alignment: Alignment.centerRight,
-            child: TextButton(
-              onPressed: () {},
-              style: TextButton.styleFrom(
-                foregroundColor: _primary,
-                padding: EdgeInsets.zero,
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              ),
-              child: Text(
-                _t('forgot_password'),
-                style:
-                    const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
-              ),
-            ),
-          ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
           _PrimaryBtn(
             label: _t('login'),
             loading: _loginLoading,

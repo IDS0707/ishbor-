@@ -21,12 +21,22 @@ class Job {
   /// One of: 'emp_fulltime' | 'emp_parttime' | 'emp_onetime' | ''
   final String employmentType;
 
+  /// Minimum worker age (0 = no limit).
+  final int ageMin;
+
+  /// Maximum worker age (0 = no limit).
+  final int ageMax;
+
+  /// Preferred worker gender: 'male' | 'female' | '' (any).
+  final String gender;
+
   const Job({
     required this.id,
     required this.title,
     required this.salary,
     required this.phone,
-    required this.createdAt, this.category = 'cat_other',
+    required this.createdAt,
+    this.category = 'cat_other',
     this.description = '',
     this.postedByUid = '',
     this.region = '',
@@ -36,6 +46,9 @@ class Job {
     this.latitude = 0.0,
     this.longitude = 0.0,
     this.employmentType = '',
+    this.ageMin = 0,
+    this.ageMax = 0,
+    this.gender = '',
   });
 
   factory Job.fromFirestore(DocumentSnapshot<Map<String, dynamic>> doc) {
@@ -56,6 +69,9 @@ class Job {
       latitude: (d['latitude'] as num?)?.toDouble() ?? 0.0,
       longitude: (d['longitude'] as num?)?.toDouble() ?? 0.0,
       employmentType: d['employmentType'] as String? ?? '',
+      ageMin: d['ageMin'] as int? ?? 0,
+      ageMax: d['ageMax'] as int? ?? 0,
+      gender: d['gender'] as String? ?? '',
     );
   }
 
@@ -76,5 +92,8 @@ class Job {
         'latitude': latitude,
         'longitude': longitude,
         'employmentType': employmentType,
+        'ageMin': ageMin,
+        'ageMax': ageMax,
+        'gender': gender,
       };
 }

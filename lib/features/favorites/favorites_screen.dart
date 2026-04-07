@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:job_finder_app/core/providers.dart';
-import 'package:job_finder_app/services/index.dart';
 import 'package:job_finder_app/ui/theme/index.dart';
 import 'package:job_finder_app/ui/widgets/index.dart';
 
@@ -14,9 +13,8 @@ class FavoritesScreen extends ConsumerWidget {
     final favoriteIds = localStorage.getFavorites();
     final cachedJobs = localStorage.getAllCachedJobs();
 
-    final favoriteJobs = cachedJobs
-        .where((job) => favoriteIds.contains(job.id))
-        .toList();
+    final favoriteJobs =
+        cachedJobs.where((job) => favoriteIds.contains(job.id)).toList();
 
     return Scaffold(
       backgroundColor: AppTheme.background,

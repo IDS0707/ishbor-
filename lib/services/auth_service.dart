@@ -1,16 +1,14 @@
 import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
-import 'package:google_sign_in/google_sign_in.dart';
 
-/// Handles Phone OTP, Email/Password, and Google Sign-In.
+/// Handles Phone OTP and Email/Password authentication.
 ///
 /// Platform branching:
 ///   Web    → signInWithPhoneNumber  (reCAPTCHA handled automatically)
 ///   Mobile → verifyPhoneNumber
 class AuthService {
   static final FirebaseAuth _auth = FirebaseAuth.instance;
-  static final GoogleSignIn _googleSignIn = GoogleSignIn();
 
   /// Stored on web after [sendOtp], used by [verifyOtp].
   static ConfirmationResult? _webConfirmation;
@@ -118,14 +116,10 @@ class AuthService {
     String email,
     String password,
   ) async {
-    try {
-      return await _auth.createUserWithEmailAndPassword(
-        email: email.trim(),
-        password: password,
-      );
-    } on FirebaseAuthException catch (e) {
-      throw _friendlyAuthError(e);
-    }
+    return await _auth.createUserWithEmailAndPassword(
+      email: email.trim(),
+      password: password,
+    );
   }
 
   /// Sign in to an existing account.
@@ -133,125 +127,29 @@ class AuthService {
     String email,
     String password,
   ) async {
-    try {
-      return await _auth.signInWithEmailAndPassword(
-        email: email.trim(),
-        password: password,
-      );
-    } on FirebaseAuthException catch (e) {
-      throw _friendlyAuthError(e);
-    }
+    return await _auth.signInWithEmailAndPassword(
+      email: email.trim(),
+      password: password,
+    );
   }
 
   // ══════════════════════════════════════════════════════════════════════════
-  // GOOGLE SIGN-IN
+  // ACCOUNT MANAGEMENT
   // ══════════════════════════════════════════════════════════════════════════
-
-  /// Sign in with Google (works on Android and Web).
-  /// Returns null if the user cancelled the picker.
-  static Future<UserCredential?> signInWithGoogle() async {
-    try {
-      if (kIsWeb) {
-        // On web use Firebase's built-in popup — no google_sign_in needed.
-        final provider = GoogleAuthProvider();
-        provider.addScope('email');
-        provider.addScope('profile');
-        return await _auth.signInWithPopup(provider);
-      }
-
-      // Native Android / iOS
-      final googleUser = await _googleSignIn.signIn();
-      if (googleUser == null) return null; // user cancelled
-
-      final googleAuth = await googleUser.authentication;
-      final credential = GoogleAuthProvider.credential(
-        accessToken: googleAuth.accessToken,
-        idToken: googleAuth.idToken,
-      );
-      return await _auth.signInWithCredential(credential);
-    } on FirebaseAuthException catch (e) {
-      throw _friendlyAuthError(e);
-    }
-  }
-
-  // ══════════════════════════════════════════════════════════════════════════
-  // LINK / ACCOUNT MANAGEMENT
-  // ══════════════════════════════════════════════════════════════════════════
-
-  /// Links a Google account to the currently signed-in user.
-  /// Returns null if the user cancelled.
-  static Future<UserCredential?> linkWithGoogle() async {
-    final user = _auth.currentUser;
-    if (user == null) throw StateError('No user signed in.');
-    try {
-      if (kIsWeb) {
-        final provider = GoogleAuthProvider();
-        provider.addScope('email');
-        return await user.linkWithPopup(provider);
-      }
-      final googleUser = await _googleSignIn.signIn();
-      if (googleUser == null) return null;
-      final googleAuth = await googleUser.authentication;
-      final credential = GoogleAuthProvider.credential(
-        accessToken: googleAuth.accessToken,
-        idToken: googleAuth.idToken,
-      );
-      return await user.linkWithCredential(credential);
-    } on FirebaseAuthException catch (e) {
-      throw _friendlyAuthError(e);
-    }
-  }
 
   /// Returns the set of provider IDs linked to the current user.
-  /// e.g. {'phone', 'google.com', 'password'}
+  /// e.g. {'phone', 'password'}
   static Set<String> get linkedProviders =>
       _auth.currentUser?.providerData.map((p) => p.providerId).toSet() ?? {};
 
   /// Changes the password for the current email/password user.
-  /// Throws a [String] message on failure.
   static Future<void> changePassword(String newPassword) async {
-    try {
-      await _auth.currentUser!.updatePassword(newPassword);
-    } on FirebaseAuthException catch (e) {
-      throw _friendlyAuthError(e);
-    }
+    await _auth.currentUser!.updatePassword(newPassword);
   }
 
   // ══════════════════════════════════════════════════════════════════════════
   // SIGN OUT
   // ══════════════════════════════════════════════════════════════════════════
-
-  /// Re-authenticates the current user — required before sensitive ops like
-  /// account deletion when Firebase's [requires-recent-login] is thrown.
-  ///
-  /// • Google users  → re-auth via popup (web) or Google Sign-In (native)
-  /// • Phone users   → returns false (caller should sign out and re-login)
-  /// • Email users   → returns false (caller should sign out and re-login)
-  static Future<bool> reauthenticateCurrentUser() async {
-    final user = _auth.currentUser;
-    if (user == null) return false;
-
-    final providers = user.providerData.map((p) => p.providerId).toSet();
-
-    if (providers.contains('google.com')) {
-      if (kIsWeb) {
-        final provider = GoogleAuthProvider();
-        await user.reauthenticateWithPopup(provider);
-      } else {
-        final googleUser = await _googleSignIn.signIn();
-        if (googleUser == null) return false;
-        final googleAuth = await googleUser.authentication;
-        final credential = GoogleAuthProvider.credential(
-          accessToken: googleAuth.accessToken,
-          idToken: googleAuth.idToken,
-        );
-        await user.reauthenticateWithCredential(credential);
-      }
-      return true;
-    }
-    // Phone / email — can't re-auth silently; caller must sign out + re-login.
-    return false;
-  }
 
   /// Re-authenticates an email/password user before sensitive operations.
   /// Throws [FirebaseAuthException] on failure (e.g. wrong-password).
@@ -266,10 +164,7 @@ class AuthService {
 
   static Future<void> signOut() async {
     _webConfirmation = null;
-    await Future.wait([
-      _auth.signOut(),
-      if (!kIsWeb) _googleSignIn.signOut(),
-    ]);
+    await _auth.signOut();
   }
 
   // ── Error helper ──────────────────────────────────────────────────────────

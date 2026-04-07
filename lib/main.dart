@@ -6,6 +6,7 @@ import 'core/app_locale.dart';
 import 'core/app_theme.dart';
 import 'firebase_options.dart';
 import 'screens/auth/login_screen.dart';
+import 'screens/chat_screen.dart';
 import 'screens/employer_home_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/post_job_screen.dart';
@@ -14,12 +15,59 @@ import 'screens/questions_screen.dart';
 import 'screens/role_selection_screen.dart';
 import 'screens/settings_screen.dart';
 import 'screens/splash_screen.dart';
+import 'screens/worker_profile_setup_screen.dart';
+import 'services/auth_service.dart';
+import 'services/notification_service.dart';
+
+/// Global navigator key — used by NotificationService to navigate from outside
+/// the widget tree when a push notification is tapped.
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   await loadSavedTheme();
+  await NotificationService.init();
+
+  // Wire up push-notification tap → navigate to chat
+  NotificationService.onNotificationTap = _handleNotificationTap;
+
   runApp(const JobFinderApp());
+
+  // Check if app was opened from a terminated-state notification
+  final initialData = await NotificationService.getInitialNotificationData();
+  if (initialData != null) {
+    // Small delay to let the widget tree mount
+    await Future.delayed(const Duration(milliseconds: 500));
+    _handleNotificationTap(initialData);
+  }
+}
+
+/// Routes to the relevant ChatScreen when a push notification is tapped.
+/// Expects payload keys: jobId, seekerUid, jobTitle, posterUid, opponentName.
+void _handleNotificationTap(Map<String, dynamic> data) {
+  final jobId = data['jobId'] as String? ?? '';
+  final seekerUid = data['seekerUid'] as String? ?? '';
+  if (jobId.isEmpty || seekerUid.isEmpty) return;
+
+  final myUid = AuthService.currentUser?.uid ?? '';
+  final posterUid = data['posterUid'] as String? ?? '';
+  final jobTitle = data['jobTitle'] as String? ?? '';
+  final opponentName = data['opponentName'] as String? ?? '';
+
+  navigatorKey.currentState?.push(
+    MaterialPageRoute(
+      builder: (_) => ChatScreen(
+        jobId: jobId,
+        jobTitle: jobTitle,
+        seekerUid: seekerUid,
+        posterUid: posterUid,
+        opponentName: opponentName.isNotEmpty
+            ? opponentName
+            : (myUid == seekerUid ? 'Ish beruvchi' : 'Ish izlovchi'),
+      ),
+    ),
+  );
 }
 
 class JobFinderApp extends StatelessWidget {
@@ -181,6 +229,7 @@ class JobFinderApp extends StatelessWidget {
         builder: (_, __, ___) => MaterialApp(
           title: 'Ishbor',
           debugShowCheckedModeBanner: false,
+          navigatorKey: navigatorKey,
           theme: _buildTheme(),
           darkTheme: _buildDarkTheme(),
           themeMode: themeMode,
@@ -195,6 +244,7 @@ class JobFinderApp extends StatelessWidget {
             '/profile': (_) => const ProfileScreen(),
             '/questions': (_) => const QuestionsScreen(),
             '/settings': (_) => const SettingsScreen(),
+            '/worker-profile': (_) => const WorkerProfileSetupScreen(),
           },
         ),
       ),

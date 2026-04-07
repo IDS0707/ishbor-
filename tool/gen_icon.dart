@@ -47,7 +47,7 @@ void _drawIcon(ui.Canvas canvas, double s) {
   // Background gradient — deep blue
   final bgPaint = ui.Paint()
     ..shader = ui.Gradient.linear(
-      ui.Offset(0, 0),
+      const ui.Offset(0, 0),
       ui.Offset(s, s),
       [const ui.Color(0xFF1B4FD8), const ui.Color(0xFF0EA5E9)],
     );

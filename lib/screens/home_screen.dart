@@ -1,11 +1,14 @@
-﻿import 'package:flutter/material.dart';
+﻿import 'dart:async';
+import 'package:flutter/material.dart';
 import '../core/app_locale.dart';
 import '../core/app_theme.dart';
 import '../core/responsive.dart';
 import '../core/categories.dart';
 import '../core/l10n.dart';
 import '../models/job.dart';
+import '../models/worker_profile.dart';
 import 'post_job_screen.dart';
+import 'worker_profile_setup_screen.dart';
 import '../services/auth_service.dart';
 import '../services/favorites_service.dart';
 import '../services/firestore_service.dart';
@@ -27,17 +30,46 @@ class _HomeScreenState extends State<HomeScreen> {
   String _selectedEmpType = 'all';
   String _searchQuery = '';
   final _searchCtrl = TextEditingController();
+  WorkerProfile? _workerProfile;
+  bool _profileChecked = false;
+  Timer? _searchDebounce;
+  late final Stream<int> _notifStream;
 
   @override
   void initState() {
     super.initState();
     _reloadFavorites();
+    _checkWorkerProfile();
     appLocale.addListener(_rebuild);
     appThemeMode.addListener(_rebuild);
+    final uid = AuthService.currentUser?.uid ?? '';
+    _notifStream = uid.isNotEmpty
+        ? FirestoreService.unreadNotifCount(uid)
+        : Stream.value(0);
   }
 
   void _rebuild() => setState(() {});
   String _t(String k) => L10n.t(k, appLocale.value);
+
+  Future<void> _checkWorkerProfile() async {
+    final uid = AuthService.currentUser?.uid;
+    if (uid == null) return;
+    final profile = await FirestoreService.getWorkerProfile(uid);
+    if (mounted) {
+      setState(() {
+        _workerProfile = profile;
+        _profileChecked = true;
+      });
+    }
+  }
+
+  void _openWorkerProfileSetup() async {
+    final result = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(builder: (_) => const WorkerProfileSetupScreen()),
+    );
+    if (result == true) _checkWorkerProfile();
+  }
 
   int get _activeFilterCount =>
       (_selectedCategory != 'all' ? 1 : 0) +
@@ -389,6 +421,7 @@ class _HomeScreenState extends State<HomeScreen> {
   void dispose() {
     appLocale.removeListener(_rebuild);
     appThemeMode.removeListener(_rebuild);
+    _searchDebounce?.cancel();
     _searchCtrl.dispose();
     super.dispose();
   }
@@ -526,12 +559,7 @@ class _HomeScreenState extends State<HomeScreen> {
         actions: [
           // Notification bell
           StreamBuilder<int>(
-            stream: () {
-              final uid = AuthService.currentUser?.uid ?? '';
-              return uid.isNotEmpty
-                  ? FirestoreService.unreadNotifCount(uid)
-                  : Stream.value(0);
-            }(),
+            stream: _notifStream,
             builder: (context, snap) {
               final count = snap.data ?? 0;
               return GestureDetector(
@@ -658,7 +686,13 @@ class _HomeScreenState extends State<HomeScreen> {
                         height: 48,
                         child: TextField(
                           controller: _searchCtrl,
-                          onChanged: (v) => setState(() => _searchQuery = v),
+                          onChanged: (v) {
+                            _searchDebounce?.cancel();
+                            _searchDebounce = Timer(
+                              const Duration(milliseconds: 300),
+                              () => setState(() => _searchQuery = v),
+                            );
+                          },
                           style: TextStyle(color: textPrimary, fontSize: 14),
                           decoration: InputDecoration(
                             hintText: _t('search_hint'),
@@ -768,6 +802,61 @@ class _HomeScreenState extends State<HomeScreen> {
                   ],
                 ),
               ),
+
+              // ── Worker profile incomplete banner ──────────────────
+              if (_profileChecked &&
+                  (_workerProfile == null || !_workerProfile!.isComplete))
+                GestureDetector(
+                  onTap: _openWorkerProfileSetup,
+                  child: Container(
+                    margin: const EdgeInsets.fromLTRB(16, 10, 16, 0),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF2563EB).withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                          color:
+                              const Color(0xFF2563EB).withValues(alpha: 0.25)),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.person_pin_rounded,
+                            color: Color(0xFF2563EB), size: 20),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            _t('profile_incomplete_banner'),
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: isDark
+                                  ? const Color(0xFF93C5FD)
+                                  : const Color(0xFF1D4ED8),
+                              height: 1.4,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 5),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF2563EB),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            _t('complete_profile'),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
 
               // ── Active filter chips (only when filters are active) ─────
               if (_activeFilterCount > 0)
@@ -1558,22 +1647,26 @@ class _NotifSheet extends StatelessWidget {
                 ),
                 const Spacer(),
                 // Mark all read button
-                TextButton(
-                  onPressed: () => FirestoreService.markAllNotifsRead(uid),
-                  style: TextButton.styleFrom(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10)),
-                    backgroundColor:
-                        const Color(0xFF2563EB).withValues(alpha: 0.1),
-                  ),
-                  child: Text(
-                    L10n.t('mark_all_read', lang),
-                    style: const TextStyle(
-                      color: Color(0xFF2563EB),
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
+                Flexible(
+                  child: TextButton(
+                    onPressed: () => FirestoreService.markAllNotifsRead(uid),
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 6),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10)),
+                      backgroundColor:
+                          const Color(0xFF2563EB).withValues(alpha: 0.1),
+                    ),
+                    child: Text(
+                      L10n.t('mark_all_read', lang),
+                      style: const TextStyle(
+                        color: Color(0xFF2563EB),
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                 ),

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:job_finder_app/core/providers.dart';
 import 'package:job_finder_app/models/index.dart';
-import 'package:job_finder_app/services/index.dart';
 import 'package:job_finder_app/ui/theme/index.dart';
 import 'package:job_finder_app/ui/widgets/index.dart';
 
@@ -35,18 +34,15 @@ class EmployerHomeScreen extends ConsumerWidget {
               const Row(
                 children: [
                   Expanded(
-                    child: _StatCard(
-                        label: 'Posted', value: '0', icon: '📌'),
+                    child: _StatCard(label: 'Posted', value: '0', icon: '📌'),
                   ),
                   SizedBox(width: 12),
                   Expanded(
-                    child: _StatCard(
-                        label: 'Views', value: '0', icon: '👁️'),
+                    child: _StatCard(label: 'Views', value: '0', icon: '👁️'),
                   ),
                   SizedBox(width: 12),
                   Expanded(
-                    child: _StatCard(
-                        label: 'Contacts', value: '0', icon: '📞'),
+                    child: _StatCard(label: 'Contacts', value: '0', icon: '📞'),
                   ),
                 ],
               ),

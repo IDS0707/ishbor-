@@ -28,10 +28,13 @@ class _PostJobScreenState extends State<PostJobScreen> {
   final _addressCtrl = TextEditingController();
   final _workStartCtrl = TextEditingController();
   final _workEndCtrl = TextEditingController();
+  final _ageMinCtrl = TextEditingController();
+  final _ageMaxCtrl = TextEditingController();
   String _selectedCategory = kCategories.first;
   String _customCategory = ''; // user-typed custom category name
   String _selectedRegion = kRegions.first;
   String _selectedEmpType = 'emp_fulltime';
+  String _selectedGender = ''; // '' = any, 'male', 'female'
   bool _loading = false;
   double _lat = 0.0;
   double _lng = 0.0;
@@ -54,6 +57,9 @@ class _PostJobScreenState extends State<PostJobScreen> {
       _addressCtrl.text = job.workAddress;
       _workStartCtrl.text = job.workStart;
       _workEndCtrl.text = job.workEnd;
+      if (job.ageMin > 0) _ageMinCtrl.text = '${job.ageMin}';
+      if (job.ageMax > 0) _ageMaxCtrl.text = '${job.ageMax}';
+      _selectedGender = job.gender;
       if (kCategories.contains(job.category)) {
         _selectedCategory = job.category;
       } else if (job.category.isNotEmpty) {
@@ -86,6 +92,8 @@ class _PostJobScreenState extends State<PostJobScreen> {
     _addressCtrl.dispose();
     _workStartCtrl.dispose();
     _workEndCtrl.dispose();
+    _ageMinCtrl.dispose();
+    _ageMaxCtrl.dispose();
     super.dispose();
   }
 
@@ -113,6 +121,9 @@ class _PostJobScreenState extends State<PostJobScreen> {
         latitude: _lat,
         longitude: _lng,
         employmentType: _selectedEmpType,
+        ageMin: int.tryParse(_ageMinCtrl.text.trim()) ?? 0,
+        ageMax: int.tryParse(_ageMaxCtrl.text.trim()) ?? 0,
+        gender: _selectedGender,
       );
       if (_isEditMode) {
         await FirestoreService.updateJob(widget.initialJob!.id, job);
@@ -428,6 +439,221 @@ class _PostJobScreenState extends State<PostJobScreen> {
                   ),
                   contentPadding:
                       const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              // ── Age range ─────────────────────────────────────────────
+              const SizedBox(height: 4),
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF59E0B).withValues(alpha: 0.06),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                      color: const Color(0xFFF59E0B).withValues(alpha: 0.25)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(Icons.cake_rounded,
+                            color: Color(0xFFF59E0B), size: 18),
+                        const SizedBox(width: 8),
+                        Text(
+                          _t('age_range_section'),
+                          style: TextStyle(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 14,
+                            color:
+                                isDark ? Colors.white : const Color(0xFF0F172A),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      _t('age_range_subtitle'),
+                      style: TextStyle(fontSize: 12, color: textSecondary),
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextFormField(
+                            controller: _ageMinCtrl,
+                            keyboardType: TextInputType.number,
+                            inputFormatters: [
+                              FilteringTextInputFormatter.digitsOnly,
+                              LengthLimitingTextInputFormatter(3),
+                            ],
+                            style: TextStyle(color: textPrimary),
+                            decoration: InputDecoration(
+                              labelText: _t('age_min'),
+                              hintText: _t('age_min_hint'),
+                              hintStyle: TextStyle(color: textSecondary),
+                              filled: true,
+                              fillColor: isDark
+                                  ? const Color(0xFF1E293B)
+                                  : Colors.white,
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide:
+                                    BorderSide(color: borderColor, width: 1.5),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: const BorderSide(
+                                    color: Color(0xFF2563EB), width: 2),
+                              ),
+                              errorBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: const BorderSide(
+                                    color: Color(0xFFEF4444), width: 1.5),
+                              ),
+                              focusedErrorBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: const BorderSide(
+                                    color: Color(0xFFEF4444), width: 2),
+                              ),
+                              contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 14, vertical: 12),
+                            ),
+                            validator: (v) {
+                              if (v == null || v.isEmpty) return null;
+                              final n = int.tryParse(v);
+                              if (n == null || n < 14 || n > 80) {
+                                return _t('age_invalid');
+                              }
+                              final maxVal =
+                                  int.tryParse(_ageMaxCtrl.text.trim()) ?? 0;
+                              if (maxVal > 0 && n > maxVal) {
+                                return _t('age_min_max_invalid');
+                              }
+                              return null;
+                            },
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 10),
+                          child: Text('—',
+                              style: TextStyle(
+                                  color: textSecondary,
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.w700)),
+                        ),
+                        Expanded(
+                          child: TextFormField(
+                            controller: _ageMaxCtrl,
+                            keyboardType: TextInputType.number,
+                            inputFormatters: [
+                              FilteringTextInputFormatter.digitsOnly,
+                              LengthLimitingTextInputFormatter(3),
+                            ],
+                            style: TextStyle(color: textPrimary),
+                            decoration: InputDecoration(
+                              labelText: _t('age_max'),
+                              hintText: _t('age_max_hint'),
+                              hintStyle: TextStyle(color: textSecondary),
+                              filled: true,
+                              fillColor: isDark
+                                  ? const Color(0xFF1E293B)
+                                  : Colors.white,
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide:
+                                    BorderSide(color: borderColor, width: 1.5),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: const BorderSide(
+                                    color: Color(0xFF2563EB), width: 2),
+                              ),
+                              errorBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: const BorderSide(
+                                    color: Color(0xFFEF4444), width: 1.5),
+                              ),
+                              focusedErrorBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: const BorderSide(
+                                    color: Color(0xFFEF4444), width: 2),
+                              ),
+                              contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 14, vertical: 12),
+                            ),
+                            validator: (v) {
+                              if (v == null || v.isEmpty) return null;
+                              final n = int.tryParse(v);
+                              if (n == null || n < 14 || n > 80) {
+                                return _t('age_invalid');
+                              }
+                              return null;
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              // ── Preferred gender ─────────────────────────────────────
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: surfaceColor,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: borderColor),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(Icons.wc_rounded,
+                            size: 18, color: Color(0xFF2563EB)),
+                        const SizedBox(width: 8),
+                        Text(
+                          _t('preferred_gender'),
+                          style: TextStyle(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 14,
+                            color:
+                                isDark ? Colors.white : const Color(0xFF0F172A),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Wrap(
+                      spacing: 8,
+                      children: [
+                        for (final opt in [
+                          ('', 'gender_any'),
+                          ('male', 'gender_male'),
+                          ('female', 'gender_female'),
+                        ])
+                          ChoiceChip(
+                            label: Text(_t(opt.$2)),
+                            selected: _selectedGender == opt.$1,
+                            onSelected: (_) =>
+                                setState(() => _selectedGender = opt.$1),
+                            selectedColor: const Color(0xFF2563EB),
+                            labelStyle: TextStyle(
+                              color: _selectedGender == opt.$1
+                                  ? Colors.white
+                                  : (isDark
+                                      ? Colors.white70
+                                      : const Color(0xFF374151)),
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ],
                 ),
               ),
               const SizedBox(height: 20),

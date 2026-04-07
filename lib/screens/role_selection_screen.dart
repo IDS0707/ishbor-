@@ -1,7 +1,10 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import '../core/responsive.dart';
 import '../core/app_theme.dart';
+import '../services/firestore_service.dart';
 import '../services/role_service.dart';
+import 'worker_profile_setup_screen.dart';
 
 class RoleSelectionScreen extends StatefulWidget {
   const RoleSelectionScreen({super.key});
@@ -20,7 +23,23 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
     if (role == 'employer') {
       Navigator.pushReplacementNamed(context, '/employer-home');
     } else {
-      Navigator.pushReplacementNamed(context, '/home');
+      // Check if worker already has a complete profile (returning user on new device)
+      final uid = FirebaseAuth.instance.currentUser?.uid;
+      final existing =
+          uid != null ? await FirestoreService.getWorkerProfile(uid) : null;
+      if (!mounted) return;
+      if (existing != null && existing.isComplete) {
+        // Profile already filled → skip setup, go straight home
+        Navigator.pushReplacementNamed(context, '/home');
+      } else {
+        // New worker or incomplete profile → fill profile first
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (_) => const WorkerProfileSetupScreen(isFirstSetup: true),
+          ),
+        );
+      }
     }
   }
 

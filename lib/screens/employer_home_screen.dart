@@ -7,6 +7,7 @@ import '../models/job.dart';
 import '../services/auth_service.dart';
 import '../services/firestore_service.dart';
 import '../core/responsive.dart';
+import 'browse_seekers_screen.dart';
 import 'chat_screen.dart';
 import 'job_detail_screen.dart';
 import 'post_job_screen.dart';
@@ -495,6 +496,12 @@ class _MyJobsTab extends StatelessWidget {
                       onTap: () => onTap(jobs[i]),
                       onEdit: () => onEdit(jobs[i]),
                       onDelete: () => onDelete(jobs[i]),
+                      onBrowseWorkers: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => BrowseSeekersScreen(job: jobs[i]),
+                        ),
+                      ),
                     ),
                   ),
                   childCount: jobs.length,
@@ -895,6 +902,7 @@ class _EmployerJobCard extends StatelessWidget {
   final VoidCallback onTap;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
+  final VoidCallback onBrowseWorkers;
 
   const _EmployerJobCard({
     required this.job,
@@ -907,6 +915,7 @@ class _EmployerJobCard extends StatelessWidget {
     required this.onTap,
     required this.onEdit,
     required this.onDelete,
+    required this.onBrowseWorkers,
   });
 
   @override
@@ -1004,6 +1013,35 @@ class _EmployerJobCard extends StatelessWidget {
                           ),
                         ],
                       ],
+                    ),
+                    const SizedBox(height: 10),
+                    // Browse matching workers button
+                    GestureDetector(
+                      onTap: onBrowseWorkers,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF7C3AED).withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.people_rounded,
+                                size: 14, color: Color(0xFF7C3AED)),
+                            const SizedBox(width: 5),
+                            Text(
+                              t('browse_workers'),
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: Color(0xFF7C3AED),
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
                   ],
                 ),

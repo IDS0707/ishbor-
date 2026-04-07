@@ -6,6 +6,7 @@ import '../core/app_theme.dart'; // also exports persistTheme
 import '../core/responsive.dart';
 import '../core/l10n.dart';
 import '../services/auth_service.dart';
+import '../services/notification_service.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -33,6 +34,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _logout() async {
+    await NotificationService.clearToken();
     await AuthService.signOut();
     if (mounted) Navigator.pushReplacementNamed(context, '/login');
   }
@@ -93,19 +95,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (user == null) return;
 
     final providers = user.providerData.map((p) => p.providerId).toSet();
-
-    // ── Google user ────────────────────────────────────────────────────────
-    if (providers.contains('google.com')) {
-      try {
-        final reauthed = await AuthService.reauthenticateCurrentUser();
-        if (reauthed) {
-          await _retryDelete();
-          return;
-        }
-      } catch (_) {}
-      _showErrorSnack(_t('reauth_failed'));
-      return;
-    }
 
     // ── Email / password user ──────────────────────────────────────────────
     if (providers.contains('password')) {

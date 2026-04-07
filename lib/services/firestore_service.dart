@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/job.dart';
+import '../models/worker_profile.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Chat models
@@ -121,9 +122,10 @@ class FirestoreService {
           );
 
   /// Real-time stream of all jobs, newest first.
-  static Stream<List<Job>> jobsStream() {
+  static Stream<List<Job>> jobsStream({int limit = 300}) {
     return _col
         .orderBy('createdAt', descending: true)
+        .limit(limit)
         .snapshots()
         .map((s) => s.docs.map((d) => d.data()).toList());
   }
@@ -181,7 +183,7 @@ class FirestoreService {
     final involvedUids = <String>{};
     if (posterUid.isNotEmpty) involvedUids.add(posterUid);
     for (final chatDoc in chatSnap.docs) {
-      final data = chatDoc.data() as Map<String, dynamic>;
+      final data = chatDoc.data();
       final seekerUid = data['seekerUid'] as String? ?? '';
       if (seekerUid.isNotEmpty) involvedUids.add(seekerUid);
     }
@@ -406,4 +408,78 @@ class FirestoreService {
         'createdAt': FieldValue.serverTimestamp(),
         'answered': false,
       });
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // WORKER PROFILES
+  // ══════════════════════════════════════════════════════════════════════════
+
+  static final _workerProfiles =
+      FirebaseFirestore.instance.collection('worker_profiles');
+
+  /// Save (create or overwrite) a worker profile for [uid].
+  static Future<void> saveWorkerProfile(WorkerProfile profile) =>
+      _workerProfiles.doc(profile.uid).set(
+            profile.toFirestore(),
+            SetOptions(merge: true),
+          );
+
+  /// Fetch a single worker profile for [uid]. Returns null if not found.
+  static Future<WorkerProfile?> getWorkerProfile(String uid) async {
+    final snap = await _workerProfiles.doc(uid).get();
+    if (!snap.exists) return null;
+    return WorkerProfile.fromMap(snap.id, snap.data()!);
+  }
+
+  /// Real-time stream for one worker profile.
+  static Stream<WorkerProfile?> workerProfileStream(String uid) {
+    return _workerProfiles.doc(uid).snapshots().map((snap) {
+      if (!snap.exists) return null;
+      return WorkerProfile.fromMap(snap.id, snap.data()!);
+    });
+  }
+
+  /// Returns worker profiles that have at least one category in [categories]
+  /// AND whose age is within [ageMin]..[ageMax] (0 = no limit).
+  ///
+  /// Firestore does not support array-contains-any combined with range filter
+  /// on a different field in a single query, so we fetch by category match
+  /// first and filter age client-side.
+  static Future<List<WorkerProfile>> matchingWorkers({
+    required List<String> categories,
+    int ageMin = 0,
+    int ageMax = 0,
+    String gender = '', // '' = any
+  }) async {
+    if (categories.isEmpty) return [];
+
+    // array-contains-any supports up to 30 values per query
+    final chunks = <List<String>>[];
+    for (var i = 0; i < categories.length; i += 30) {
+      chunks.add(categories.sublist(
+          i, i + 30 > categories.length ? categories.length : i + 30));
+    }
+
+    final results = <WorkerProfile>[];
+    final seen = <String>{};
+
+    for (final chunk in chunks) {
+      final snap = await _workerProfiles
+          .where('categories', arrayContainsAny: chunk)
+          .get();
+      for (final doc in snap.docs) {
+        if (seen.contains(doc.id)) continue;
+        seen.add(doc.id);
+        final profile = WorkerProfile.fromMap(doc.id, doc.data());
+        // Client-side age filtering
+        if (ageMin > 0 && profile.age < ageMin) continue;
+        if (ageMax > 0 && profile.age > ageMax) continue;
+        // Client-side gender filtering
+        if (gender.isNotEmpty && profile.gender != gender) continue;
+        results.add(profile);
+      }
+    }
+
+    results.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+    return results;
+  }
 }

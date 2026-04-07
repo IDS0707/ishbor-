@@ -1,7 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 import '../services/auth_service.dart';
+import '../services/notification_service.dart';
 import '../services/role_service.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -39,13 +43,26 @@ class _SplashScreenState extends State<SplashScreen>
 
     _ctrl.forward();
 
+    // Ruxsatlarni so'rash (splash ko'rinayotganida)
+    _requestPermissions();
+
     // 2.2 soniyadan keyin navigatsiya
     Future.delayed(const Duration(milliseconds: 2200), _navigate);
+  }
+
+  /// Bildirishnoma va joylashuv ruxsatlarini so'rash (Android 13+)
+  Future<void> _requestPermissions() async {
+    await [
+      Permission.notification,
+      Permission.location,
+    ].request();
   }
 
   Future<void> _navigate() async {
     if (!mounted) return;
     if (AuthService.isLoggedIn) {
+      // Save/refresh FCM token so this device can receive push notifications
+      unawaited(NotificationService.saveToken());
       final role = await RoleService.getRole();
       if (!mounted) return;
       if (role == 'employer') {
@@ -360,26 +377,28 @@ class _SplashScreenState extends State<SplashScreen>
           child: Icon(icon, color: const Color(0xFF60A5FA), size: 24),
         ),
         const SizedBox(width: 16),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              title,
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
-                color: Colors.white,
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white,
+                ),
               ),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              subtitle,
-              style: const TextStyle(
-                fontSize: 13,
-                color: Color(0xFF94A3B8),
+              const SizedBox(height: 2),
+              Text(
+                subtitle,
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: Color(0xFF94A3B8),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ],
     );

@@ -5,6 +5,7 @@ import '../core/responsive.dart';
 import '../core/categories.dart';
 import '../core/l10n.dart';
 import '../models/job.dart';
+import '../models/worker_profile.dart';
 import '../services/auth_service.dart';
 import '../services/firestore_service.dart';
 import '../services/role_service.dart';
@@ -12,6 +13,7 @@ import '../services/user_service.dart';
 import 'chat_screen.dart';
 import 'job_detail_screen.dart';
 import 'post_job_screen.dart';
+import 'worker_profile_setup_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -24,6 +26,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool _editing = false;
   bool _saving = false;
   int _postCount = 0;
+  WorkerProfile? _workerProfile;
+  bool _workerProfileLoaded = false;
 
   String _t(String k) => L10n.t(k, appLocale.value);
 
@@ -35,6 +39,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final user = AuthService.currentUser;
     _nameCtrl.text = user?.displayName ?? '';
     _loadPostCount();
+    _loadWorkerProfile();
   }
 
   void _rebuild() => setState(() {});
@@ -45,6 +50,32 @@ class _ProfileScreenState extends State<ProfileScreen> {
     FirestoreService.myJobsStream(uid).first.then((jobs) {
       if (mounted) setState(() => _postCount = jobs.length);
     });
+  }
+
+  Future<void> _loadWorkerProfile() async {
+    final uid = AuthService.currentUser?.uid;
+    if (uid == null) return;
+    final profile = await FirestoreService.getWorkerProfile(uid);
+    if (mounted) {
+      setState(() {
+        _workerProfile = profile;
+        _workerProfileLoaded = true;
+      });
+    }
+  }
+
+  void _openWorkerProfileEdit() async {
+    final result = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(builder: (_) => const WorkerProfileSetupScreen()),
+    );
+    if (result == true) {
+      _loadWorkerProfile();
+      final user = AuthService.currentUser;
+      if (user != null && mounted) {
+        setState(() => _nameCtrl.text = user.displayName ?? '');
+      }
+    }
   }
 
   @override
@@ -145,253 +176,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ));
       }
     }
-  }
-
-  Future<void> _linkGoogle() async {
-    setState(() => _saving = true);
-    try {
-      final cred = await AuthService.linkWithGoogle();
-      if (cred == null) return; // user cancelled
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(_t('link_google_success')),
-          backgroundColor: const Color(0xFF16A34A),
-          behavior: SnackBarBehavior.floating,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          margin: const EdgeInsets.all(16),
-        ));
-        setState(() {});
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(e.toString()),
-          backgroundColor: const Color(0xFFEF4444),
-          behavior: SnackBarBehavior.floating,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          margin: const EdgeInsets.all(16),
-        ));
-      }
-    } finally {
-      if (mounted) setState(() => _saving = false);
-    }
-  }
-
-  void _showChangePasswordSheet() {
-    final newPassCtrl = TextEditingController();
-    final confirmCtrl = TextEditingController();
-    bool visible = false;
-    bool loading = false;
-
-    final isDark = appThemeMode.value == ThemeMode.dark;
-    const accent = Color(0xFF7C3AED);
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      useSafeArea: true,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setSheet) => AnimatedPadding(
-          duration: const Duration(milliseconds: 150),
-          padding:
-              EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
-          child: Container(
-            decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF1E293B) : Colors.white,
-              borderRadius:
-                  const BorderRadius.vertical(top: Radius.circular(28)),
-            ),
-            padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Center(
-                  child: Container(
-                    width: 40,
-                    height: 4,
-                    margin: const EdgeInsets.only(top: 12, bottom: 20),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFE5E7EB),
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                ),
-                Row(children: [
-                  Container(
-                    width: 48,
-                    height: 48,
-                    decoration: BoxDecoration(
-                      color: accent.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    child: const Icon(Icons.lock_outline_rounded,
-                        color: accent, size: 24),
-                  ),
-                  const SizedBox(width: 14),
-                  Text(
-                    _t('change_password'),
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
-                      color: isDark ? Colors.white : const Color(0xFF0F172A),
-                    ),
-                  ),
-                ]),
-                const SizedBox(height: 20),
-                // New password
-                TextField(
-                  controller: newPassCtrl,
-                  obscureText: !visible,
-                  autofocus: true,
-                  decoration: InputDecoration(
-                    hintText: _t('new_password'),
-                    prefixIcon: const Icon(Icons.lock_outline_rounded,
-                        color: accent, size: 20),
-                    suffixIcon: IconButton(
-                      icon: Icon(
-                          visible
-                              ? Icons.visibility_off_outlined
-                              : Icons.visibility_outlined,
-                          color: const Color(0xFF9CA3AF),
-                          size: 20),
-                      onPressed: () => setSheet(() => visible = !visible),
-                    ),
-                    filled: true,
-                    fillColor: isDark
-                        ? const Color(0xFF0F172A)
-                        : const Color(0xFFF9FAFB),
-                    border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(14)),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
-                      borderSide: const BorderSide(
-                          color: Color(0xFFE5E7EB), width: 1.5),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
-                      borderSide: const BorderSide(color: accent, width: 2),
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 16),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                // Confirm
-                TextField(
-                  controller: confirmCtrl,
-                  obscureText: true,
-                  decoration: InputDecoration(
-                    hintText: _t('confirm_password'),
-                    prefixIcon: const Icon(Icons.lock_reset_rounded,
-                        color: accent, size: 20),
-                    filled: true,
-                    fillColor: isDark
-                        ? const Color(0xFF0F172A)
-                        : const Color(0xFFF9FAFB),
-                    border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(14)),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
-                      borderSide: const BorderSide(
-                          color: Color(0xFFE5E7EB), width: 1.5),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
-                      borderSide: const BorderSide(color: accent, width: 2),
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 16),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                SizedBox(
-                  height: 54,
-                  child: ElevatedButton(
-                    onPressed: loading
-                        ? null
-                        : () async {
-                            if (newPassCtrl.text.length < 6) {
-                              ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(
-                                content: Text(_t('pass_error')),
-                                backgroundColor: const Color(0xFFEF4444),
-                                behavior: SnackBarBehavior.floating,
-                                shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12)),
-                                margin: const EdgeInsets.all(16),
-                              ));
-                              return;
-                            }
-                            if (newPassCtrl.text != confirmCtrl.text) {
-                              ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(
-                                content: Text(_t('confirm_error')),
-                                backgroundColor: const Color(0xFFEF4444),
-                                behavior: SnackBarBehavior.floating,
-                                shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12)),
-                                margin: const EdgeInsets.all(16),
-                              ));
-                              return;
-                            }
-                            setSheet(() => loading = true);
-                            try {
-                              await AuthService.changePassword(
-                                  newPassCtrl.text);
-                              if (ctx.mounted) {
-                                Navigator.of(ctx).pop();
-                                ScaffoldMessenger.of(context)
-                                    .showSnackBar(SnackBar(
-                                  content: Text(_t('password_changed')),
-                                  backgroundColor: const Color(0xFF16A34A),
-                                  behavior: SnackBarBehavior.floating,
-                                  shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12)),
-                                  margin: const EdgeInsets.all(16),
-                                ));
-                              }
-                            } catch (e) {
-                              setSheet(() => loading = false);
-                              if (ctx.mounted) {
-                                ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(
-                                  content: Text(e.toString()),
-                                  backgroundColor: const Color(0xFFEF4444),
-                                  behavior: SnackBarBehavior.floating,
-                                  shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12)),
-                                  margin: const EdgeInsets.all(16),
-                                ));
-                              }
-                            }
-                          },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: accent,
-                      disabledBackgroundColor: accent.withValues(alpha: 0.5),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14)),
-                      elevation: 0,
-                    ),
-                    child: loading
-                        ? const SizedBox(
-                            width: 22,
-                            height: 22,
-                            child: CircularProgressIndicator(
-                                strokeWidth: 2.5, color: Colors.white))
-                        : Text(_t('save'),
-                            style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w700,
-                                color: Colors.white)),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
   }
 
   String _getInitials(String name) {
@@ -542,6 +326,113 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                   const SizedBox(height: 20),
 
+                  // ── Worker profile section ────────────────────────────
+                  if (_workerProfileLoaded) ...[
+                    _SectionCard(
+                      title: _t('my_worker_profile'),
+                      isDark: isDark,
+                      surfaceColor: surfaceColor,
+                      borderColor: borderColor,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (_workerProfile != null) ...[
+                            _InfoRow(
+                              icon: Icons.cake_outlined,
+                              label: _t('worker_age'),
+                              value: '${_workerProfile!.age}',
+                              isDark: isDark,
+                            ),
+                            _InfoRow(
+                              icon: Icons.person_outline_rounded,
+                              label: _t('gender'),
+                              value: _workerProfile!.gender == 'male'
+                                  ? _t('gender_male')
+                                  : _workerProfile!.gender == 'female'
+                                      ? _t('gender_female')
+                                      : '—',
+                              isDark: isDark,
+                            ),
+                            if (_workerProfile!.skills.isNotEmpty)
+                              _InfoRow(
+                                icon: Icons.star_outline_rounded,
+                                label: _t('worker_skills'),
+                                value: _workerProfile!.skills,
+                                isDark: isDark,
+                              ),
+                            if (_workerProfile!.categories.isNotEmpty) ...[
+                              const SizedBox(height: 4),
+                              Wrap(
+                                spacing: 6,
+                                runSpacing: 6,
+                                children: _workerProfile!.categories.map((key) {
+                                  final color = kCategoryColors[key] ??
+                                      const Color(0xFF2563EB);
+                                  final icon =
+                                      kCategoryIcons[key] ?? Icons.work_outline;
+                                  return Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 10, vertical: 5),
+                                    decoration: BoxDecoration(
+                                      color: color.withValues(alpha: 0.1),
+                                      borderRadius: BorderRadius.circular(20),
+                                      border: Border.all(
+                                          color: color.withValues(alpha: 0.4)),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(icon, size: 13, color: color),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          _t(key),
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            color: color,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                }).toList(),
+                              ),
+                              const SizedBox(height: 8),
+                            ],
+                          ] else ...[
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 12),
+                              child: Text(
+                                _t('profile_incomplete_banner'),
+                                style: TextStyle(
+                                    color: textSecondary, fontSize: 13),
+                              ),
+                            ),
+                          ],
+                          const SizedBox(height: 4),
+                          SizedBox(
+                            width: double.infinity,
+                            child: OutlinedButton.icon(
+                              icon: const Icon(Icons.edit_rounded, size: 18),
+                              label: Text(_t('edit_worker_profile')),
+                              onPressed: _openWorkerProfileEdit,
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: const Color(0xFF2563EB),
+                                side:
+                                    const BorderSide(color: Color(0xFF2563EB)),
+                                shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12)),
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 12),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                  ],
+
                   // ── Incoming questions section ─────────────────────────
                   _IncomingChatsSection(
                     uid: AuthService.currentUser?.uid ?? '',
@@ -671,54 +562,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                   const SizedBox(height: 12),
 
-                  // ── Security section ──────────────────────────────────
-                  _SectionCard(
-                    title: _t('security'),
-                    isDark: isDark,
-                    surfaceColor: surfaceColor,
-                    borderColor: borderColor,
-                    child: Column(
-                      children: [
-                        // Link Google — only if not already linked
-                        if (!AuthService.linkedProviders.contains('google.com'))
-                          _ActionTile(
-                            icon: Icons.g_mobiledata_rounded,
-                            label: _t('link_google'),
-                            iconColor: const Color(0xFF4285F4),
-                            isDark: isDark,
-                            surfaceColor: surfaceColor,
-                            borderColor: borderColor,
-                            onTap: _saving ? () {} : _linkGoogle,
-                          )
-                        else
-                          _ActionTile(
-                            icon: Icons.g_mobiledata_rounded,
-                            label: _t('google_linked'),
-                            iconColor: const Color(0xFF16A34A),
-                            isDark: isDark,
-                            surfaceColor: surfaceColor,
-                            borderColor: borderColor,
-                            onTap: () {},
-                          ),
-                        // Change password — only for email/password users
-                        if (AuthService.linkedProviders
-                            .contains('password')) ...[
-                          const SizedBox(height: 8),
-                          _ActionTile(
-                            icon: Icons.lock_outline_rounded,
-                            label: _t('change_password'),
-                            iconColor: const Color(0xFF7C3AED),
-                            isDark: isDark,
-                            surfaceColor: surfaceColor,
-                            borderColor: borderColor,
-                            onTap: _showChangePasswordSheet,
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-
                   // ── Settings shortcut ─────────────────────────────────
                   _ActionTile(
                     icon: Icons.settings_outlined,
@@ -741,7 +584,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     borderColor: borderColor,
                     onTap: () async {
                       await RoleService.clearRole();
-                      if (!mounted) return;
+                      if (!context.mounted) return;
                       Navigator.pushReplacementNamed(context, '/role-select');
                     },
                   ),

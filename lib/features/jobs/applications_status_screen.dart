@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:job_finder_app/core/providers.dart';
 import 'package:job_finder_app/models/index.dart';
-import 'package:job_finder_app/services/index.dart';
 import 'package:job_finder_app/ui/theme/index.dart';
 
 class ApplicationsStatusScreen extends ConsumerWidget {
@@ -41,12 +40,10 @@ class ApplicationsStatusScreen extends ConsumerWidget {
 
           // Group by status
           final seen = applications.where((a) => a.status == 'seen').toList();
-          final replied = applications
-              .where((a) => a.status == 'replied')
-              .toList();
-          final rejected = applications
-              .where((a) => a.status == 'rejected')
-              .toList();
+          final replied =
+              applications.where((a) => a.status == 'replied').toList();
+          final rejected =
+              applications.where((a) => a.status == 'rejected').toList();
 
           return ListView(
             padding: const EdgeInsets.all(16),
@@ -141,9 +138,9 @@ class _StatusSection extends StatelessWidget {
                   child: Text(
                     app.status.toUpperCase(),
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: color,
-                      fontWeight: FontWeight.w600,
-                    ),
+                          color: color,
+                          fontWeight: FontWeight.w600,
+                        ),
                   ),
                 ),
               ],

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:job_finder_app/core/providers.dart';
 import 'package:job_finder_app/models/index.dart';
-import 'package:job_finder_app/services/index.dart';
 import 'package:job_finder_app/ui/theme/index.dart';
 import 'package:job_finder_app/ui/widgets/index.dart';
 
@@ -85,9 +84,9 @@ class _PostJobScreenState extends ConsumerState<PostJobScreen> {
               Text(
                 'ONLY 3 FIELDS - DONE IN 10 SECONDS',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: AppTheme.success,
-                  fontWeight: FontWeight.w700,
-                ),
+                      color: AppTheme.success,
+                      fontWeight: FontWeight.w700,
+                    ),
               ),
               const SizedBox(height: 24),
               Text('Job Title', style: Theme.of(context).textTheme.titleMedium),

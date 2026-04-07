@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../services/auth_service.dart';
+import '../services/role_service.dart';
 
 // ── Hokimyat color palette ───────────────────────────────────────────────────
 const _kNavy = Color(0xFF003580);
@@ -87,8 +88,9 @@ class _LoginScreenState extends State<LoginScreen>
     _stepCtrl.value = 1.0;
 
     if (AuthService.isLoggedIn) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) Navigator.pushReplacementNamed(context, '/home');
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        if (!mounted) return;
+        await _navigateAfterAuth();
       });
     } else {
       _entryCtrl.forward();
@@ -125,7 +127,7 @@ class _LoginScreenState extends State<LoginScreen>
       );
       if (!mounted) return;
       if (vId == 'auto') {
-        Navigator.pushReplacementNamed(context, '/home');
+        await _navigateAfterAuth();
       } else {
         _stepCtrl.reset();
         setState(() {
@@ -153,11 +155,26 @@ class _LoginScreenState extends State<LoginScreen>
     });
     try {
       await AuthService.verifyOtp(_verificationId!, code);
-      if (mounted) Navigator.pushReplacementNamed(context, '/home');
+      if (mounted) await _navigateAfterAuth();
     } on FirebaseAuthException catch (e) {
       if (mounted) setState(() => _error = e.message ?? 'Noto\'g\'ri kod.');
     } finally {
       if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  /// Login muvaffaqiyatli bo'lgandan keyin rolga qarab yo'naltirish
+  Future<void> _navigateAfterAuth() async {
+    if (!mounted) return;
+    final role = await RoleService.getRole();
+    if (!mounted) return;
+    if (role == 'employer') {
+      Navigator.pushReplacementNamed(context, '/employer-home');
+    } else if (role == 'worker') {
+      Navigator.pushReplacementNamed(context, '/home');
+    } else {
+      // Yangi foydalanuvchi — rol tanlash ekraniga
+      Navigator.pushReplacementNamed(context, '/role-select');
     }
   }
 

@@ -1,5 +1,5 @@
 name: job_finder_app
-description: Privacy-focused job finder with multi-auth (Phone OTP, Email, Google).
+description: Privacy-focused job finder with multi-auth (Phone OTP, Email).
 publish_to: 'none'
 
 version: 1.0.0+1
@@ -15,8 +15,7 @@ dependencies:
   firebase_core: ^3.13.1
   firebase_auth: ^5.5.3
   cloud_firestore: ^5.6.3
-
-  # Google Sign-In
+  firebase_messaging: ^15.2.5
   google_sign_in: ^6.2.2
 
   # Local favorites storage
@@ -29,10 +28,12 @@ dependencies:
   flutter_map: ^7.0.2
   latlong2: ^0.9.0
   geolocator: ^13.0.0
+  permission_handler: ^11.3.1
 
   # UI
   cupertino_icons: ^1.0.2
   google_fonts: ^6.2.1
+  flutter_local_notifications: ^18.0.1
 
   # Legacy service layer — do not remove
   flutter_riverpod: ^2.6.1

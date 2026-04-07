@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:job_finder_app/core/providers.dart';
-import 'package:job_finder_app/services/index.dart';
 import 'package:job_finder_app/ui/theme/index.dart';
 import 'package:job_finder_app/ui/widgets/index.dart';
 
@@ -103,8 +102,8 @@ class _PhoneAuthScreenState extends ConsumerState<PhoneAuthScreen> {
                 Text(
                   'Find work in under 10 seconds',
                   style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                    color: AppTheme.textSecondary,
-                  ),
+                        color: AppTheme.textSecondary,
+                      ),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 60),

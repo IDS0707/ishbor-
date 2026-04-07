@@ -179,8 +179,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
           // ── Input bar ───────────────────────────────────────────────────
           Container(
-            padding: EdgeInsets.fromLTRB(
-                12, 10, 12, MediaQuery.of(context).viewInsets.bottom + 10),
+            padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
             decoration: BoxDecoration(
               color: surfaceColor,
               border: Border(top: BorderSide(color: borderColor)),

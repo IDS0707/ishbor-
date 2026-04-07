@@ -302,6 +302,38 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
                     textSecondary: textSecondary,
                   ),
                 ],
+                if (_job.ageMin > 0 || _job.ageMax > 0) ...[
+                  _RowDivider(borderColor: borderColor),
+                  _DetailRow(
+                    icon: Icons.cake_outlined,
+                    iconColor: const Color(0xFF0891B2),
+                    label: _t('age_range_section'),
+                    value: (_job.ageMin > 0 && _job.ageMax > 0)
+                        ? _t('age_range_label')
+                            .replaceAll('{min}', '${_job.ageMin}')
+                            .replaceAll('{max}', '${_job.ageMax}')
+                        : (_job.ageMin > 0)
+                            ? '${_t('age_min')}: ${_job.ageMin}'
+                            : '${_t('age_max')}: ${_job.ageMax}',
+                    textPrimary: textPrimary,
+                    textSecondary: textSecondary,
+                  ),
+                ],
+                if (_job.gender.isNotEmpty) ...[
+                  _RowDivider(borderColor: borderColor),
+                  _DetailRow(
+                    icon: Icons.person_outline_rounded,
+                    iconColor: const Color(0xFF7C3AED),
+                    label: _t('preferred_gender'),
+                    value: _job.gender == 'male'
+                        ? _t('gender_male')
+                        : _job.gender == 'female'
+                            ? _t('gender_female')
+                            : _t('gender_any'),
+                    textPrimary: textPrimary,
+                    textSecondary: textSecondary,
+                  ),
+                ],
               ],
             ),
             const SizedBox(height: 14),

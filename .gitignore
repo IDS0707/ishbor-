@@ -91,3 +91,4 @@ coverage/
 
 # Generated files
 lib/**/*.g.dart
+node_modules

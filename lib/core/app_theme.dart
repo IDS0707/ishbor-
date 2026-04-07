@@ -9,7 +9,7 @@ const _kDarkKey = 'pref_dark_mode';
 /// Load persisted theme from SharedPreferences on app start.
 Future<void> loadSavedTheme() async {
   final prefs = await SharedPreferences.getInstance();
-  final isDark = prefs.getBool(_kDarkKey) ?? false;
+  final isDark = prefs.getBool(_kDarkKey) ?? true;
   appThemeMode.value = isDark ? ThemeMode.dark : ThemeMode.light;
 }
 
