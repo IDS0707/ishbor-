@@ -101,6 +101,35 @@ class _PostJobScreenState extends State<PostJobScreen> {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _loading = true);
     try {
+      // ── Anti-spam check (only for new jobs, not edits) ────────────────
+      if (!_isEditMode) {
+        final uid = AuthService.currentUser?.uid ?? '';
+        if (uid.isNotEmpty) {
+          try {
+            const maxJobsPer60Min = 5;
+            final recent = await FirestoreService.recentJobCount(uid);
+            if (recent >= maxJobsPer60Min) {
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(_t('rate_limit_jobs')),
+                    backgroundColor: Colors.orange,
+                    behavior: SnackBarBehavior.floating,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                    margin: const EdgeInsets.all(16),
+                  ),
+                );
+              }
+              setState(() => _loading = false);
+              return;
+            }
+          } catch (_) {
+            // Anti-spam tekshiruvi ishlamasa ham yuborishga ruxsat
+          }
+        }
+      }
+      // ─────────────────────────────────────────────────────────────────
       final job = Job(
         id: widget.initialJob?.id ?? '',
         title: _titleCtrl.text.trim(),
@@ -129,16 +158,18 @@ class _PostJobScreenState extends State<PostJobScreen> {
         await FirestoreService.updateJob(widget.initialJob!.id, job);
       } else {
         await FirestoreService.addJob(job);
-        // Notify the poster themselves with a confirmation
-        final posterUid = AuthService.currentUser?.uid ?? '';
-        if (posterUid.isNotEmpty) {
-          await FirestoreService.createNotification(
-            uid: posterUid,
-            type: 'new_job',
-            title: job.title,
-            body: _t('job_posted'),
-          );
-        }
+        // Notify the poster themselves — non-critical, ignore failures
+        try {
+          final posterUid = AuthService.currentUser?.uid ?? '';
+          if (posterUid.isNotEmpty) {
+            await FirestoreService.createNotification(
+              uid: posterUid,
+              type: 'new_job',
+              title: job.title,
+              body: _t('job_posted'),
+            );
+          }
+        } catch (_) {}
       }
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -157,12 +188,15 @@ class _PostJobScreenState extends State<PostJobScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(_t('error_generic')),
+            content: Text(e.toString().length > 120
+                ? e.toString().substring(0, 120)
+                : e.toString()),
             backgroundColor: Colors.red,
             behavior: SnackBarBehavior.floating,
             shape:
                 RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             margin: const EdgeInsets.all(16),
+            duration: const Duration(seconds: 8),
           ),
         );
       }

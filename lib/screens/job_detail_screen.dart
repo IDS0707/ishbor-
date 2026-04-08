@@ -11,6 +11,7 @@ import '../models/job.dart';
 import '../services/auth_service.dart';
 import '../services/favorites_service.dart';
 import '../services/firestore_service.dart';
+import '../services/report_service.dart';
 import 'chat_screen.dart';
 import 'post_job_screen.dart';
 
@@ -127,6 +128,210 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
     });
   }
 
+  // ── Report / Block ─────────────────────────────────────────────────────────
+
+  void _openReportSheet() {
+    final isDark = appThemeMode.value == ThemeMode.dark;
+    final bg = isDark ? const Color(0xFF0F172A) : const Color(0xFFF9FAFB);
+    final surface = isDark ? const Color(0xFF1E293B) : Colors.white;
+    final border = isDark ? const Color(0xFF334155) : const Color(0xFFE5E7EB);
+    final textPri = isDark ? Colors.white : const Color(0xFF111827);
+
+    final reasons = [
+      ('spam', Icons.mark_email_unread_outlined, _t('report_spam')),
+      ('fake', Icons.warning_amber_rounded, _t('report_fake')),
+      (
+        'offensive',
+        Icons.report_gmailerrorred_outlined,
+        _t('report_offensive')
+      ),
+      ('other', Icons.more_horiz_rounded, _t('report_other')),
+    ];
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (_) => Container(
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+        decoration: BoxDecoration(
+          color: bg,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Handle
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 20),
+                decoration: BoxDecoration(
+                  color: border,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            Text(
+              _t('report_job_why'),
+              style: TextStyle(
+                fontSize: 17,
+                fontWeight: FontWeight.w700,
+                color: textPri,
+              ),
+            ),
+            const SizedBox(height: 16),
+            ...reasons.map((r) {
+              final (key, icon, label) = r;
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: Material(
+                  color: surface,
+                  borderRadius: BorderRadius.circular(14),
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(14),
+                    onTap: () async {
+                      Navigator.pop(context);
+                      await _submitReport(key);
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 14),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: border),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(icon, size: 22, color: const Color(0xFFEF4444)),
+                          const SizedBox(width: 12),
+                          Text(
+                            label,
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w500,
+                              color: textPri,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            }),
+            const SizedBox(height: 8),
+            // Block user option
+            Material(
+              color: Colors.transparent,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(14),
+                onTap: () {
+                  Navigator.pop(context);
+                  _confirmBlock();
+                },
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.block_rounded,
+                          size: 18, color: Color(0xFF6B7280)),
+                      const SizedBox(width: 8),
+                      Text(
+                        _t('block_user'),
+                        style: const TextStyle(
+                          fontSize: 14,
+                          color: Color(0xFF6B7280),
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _submitReport(String reason) async {
+    try {
+      await ReportService.reportJobAsCurrentUser(
+        jobId: _job.id,
+        reason: reason,
+        posterUid: _job.postedByUid,
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(_t('report_sent')),
+            backgroundColor: const Color(0xFF16A34A),
+            behavior: SnackBarBehavior.floating,
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            margin: const EdgeInsets.all(16),
+          ),
+        );
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(_t('report_error')),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            margin: const EdgeInsets.all(16),
+          ),
+        );
+      }
+    }
+  }
+
+  void _confirmBlock() {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: Text(_t('block_user')),
+        content: Text(_t('block_user_confirm')),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(_t('cancel')),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              await ReportService.blockUserAsCurrentUser(_job.postedByUid);
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(_t('block_sent')),
+                    backgroundColor: const Color(0xFF16A34A),
+                    behavior: SnackBarBehavior.floating,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                    margin: const EdgeInsets.all(16),
+                  ),
+                );
+                Navigator.pop(context); // return to listing
+              }
+            },
+            child: Text(
+              _t('block_user'),
+              style: const TextStyle(color: Color(0xFFEF4444)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   bool get _isOwner =>
       AuthService.currentUser?.uid != null &&
       AuthService.currentUser!.uid == _job.postedByUid;
@@ -171,6 +376,13 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
               icon: Icon(Icons.edit_rounded, color: textSecondary, size: 20),
               tooltip: _t('edit_job'),
               onPressed: _openEdit,
+            ),
+          // Report button — visible only for non-owners who are logged in
+          if (!_isOwner && AuthService.currentUser != null)
+            IconButton(
+              icon: Icon(Icons.flag_outlined, color: textSecondary, size: 20),
+              tooltip: _t('report_job'),
+              onPressed: _openReportSheet,
             ),
           const SizedBox(width: 4),
         ],

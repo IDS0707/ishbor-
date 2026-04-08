@@ -1,4 +1,8 @@
-﻿import 'package:firebase_core/firebase_core.dart';
+﻿import 'dart:async';
+
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_app_check/firebase_app_check.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -24,23 +28,55 @@ import 'services/notification_service.dart';
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  await loadSavedTheme();
-  await NotificationService.init();
+  // Catch all uncaught async Dart errors — prevents app from closing
+  runZonedGuarded(() async {
+    WidgetsFlutterBinding.ensureInitialized();
 
-  // Wire up push-notification tap → navigate to chat
-  NotificationService.onNotificationTap = _handleNotificationTap;
+    // Catch all uncaught Flutter framework errors — show red error box instead of crashing
+    FlutterError.onError = (details) {
+      FlutterError.dumpErrorToConsole(details);
+    };
 
-  runApp(const JobFinderApp());
+    await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform);
 
-  // Check if app was opened from a terminated-state notification
-  final initialData = await NotificationService.getInitialNotificationData();
-  if (initialData != null) {
-    // Small delay to let the widget tree mount
-    await Future.delayed(const Duration(milliseconds: 500));
-    _handleNotificationTap(initialData);
-  }
+    // ── Firestore offline persistence (disk cache) ────────────────────────────
+    // Ishlar, chatlar, bildirishnomalar — internet bo'lmasa ham ko'rinadi.
+    FirebaseFirestore.instance.settings = const Settings(
+      persistenceEnabled: true,
+      cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
+    );
+    // ─────────────────────────────────────────────────────────────────────────
+    // App Check is disabled until the app is published to Play Store.
+    // playIntegrity only works for Play Store installs and blocks sideloaded APKs.
+    try {
+      await FirebaseAppCheck.instance.activate(
+        androidProvider: AndroidProvider.debug,
+        appleProvider: AppleProvider.debug,
+        webProvider: ReCaptchaV3Provider('YOUR_RECAPTCHA_V3_SITE_KEY'),
+      );
+    } catch (_) {}
+    // ─────────────────────────────────────────────────────────────────────────
+
+    await loadSavedTheme();
+    await NotificationService.init();
+
+    // Wire up push-notification tap → navigate to chat
+    NotificationService.onNotificationTap = _handleNotificationTap;
+
+    runApp(const JobFinderApp());
+
+    // Check if app was opened from a terminated-state notification
+    final initialData = await NotificationService.getInitialNotificationData();
+    if (initialData != null) {
+      // Small delay to let the widget tree mount
+      await Future.delayed(const Duration(milliseconds: 500));
+      _handleNotificationTap(initialData);
+    }
+  }, (error, stack) {
+    // Catch all uncaught async errors — log them but don't crash the app
+    debugPrint('Uncaught error: $error\n$stack');
+  });
 }
 
 /// Routes to the relevant ChatScreen when a push notification is tapped.

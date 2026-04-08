@@ -111,13 +111,28 @@ class NotificationService {
 
     String? token;
     if (kIsWeb) {
-      // Web requires the VAPID public key from Firebase Console → Project settings → Web push certificates
-      // Replace the placeholder below with your actual key.
+      // Web FCM requires the VAPID public key.
+      // Steps to get it:
+      //   1. Firebase Console → Project Settings → Cloud Messaging tab
+      //   2. Scroll to "Web configuration" → "Web Push certificates"
+      //   3. Click "Generate key pair" (or use existing) → copy the public key
+      //   4. Replace 'YOUR_WEB_VAPID_KEY' below with that value.
+      //
+      // WARNING: without a real VAPID key, web push notifications will NOT work.
       const vapidKey = 'YOUR_WEB_VAPID_KEY';
+      if (vapidKey == 'YOUR_WEB_VAPID_KEY') {
+        // ignore: avoid_print
+        assert(
+            false,
+            '[NotificationService] Web VAPID key is not configured. '
+            'Go to Firebase Console → Project Settings → Cloud Messaging → Web Push certificates '
+            'and replace YOUR_WEB_VAPID_KEY in notification_service.dart.');
+        return;
+      }
       try {
         token = await _fm.getToken(vapidKey: vapidKey);
       } catch (_) {
-        return; // Web without VAPID key configured — skip silently
+        return; // VAPID key invalid or web push not supported — skip silently
       }
     } else {
       token = await _fm.getToken();

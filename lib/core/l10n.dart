@@ -273,6 +273,22 @@ class L10n {
       'error': "Xatolik",
       'error_load': "Ma'lumotlarni yuklashda xatolik yuz berdi",
       'error_generic': "Xatolik yuz berdi. Qayta urinib ko'ring.",
+      'rate_limit_jobs':
+          "Siz 1 soat ichida juda ko'p ish joylastirdingiz. Iltimos, keyinroq urinib ko'ring.",
+      'rate_limit_chats':
+          "Siz juda ko'p suhbat boshladingiz. Bir ozdan keyin qayta urinib ko'ring.",
+      'report_job': "E'lonni shikoyat qilish",
+      'report_job_why': "Nima uchun shikoyat qilyapsiz?",
+      'report_spam': "Spam yoki reklama",
+      'report_fake': "Yolg'on/soxta e'lon",
+      'report_offensive': "Haqoratli yoki noto'g'ri kontent",
+      'report_other': "Boshqa sabab",
+      'report_sent': "Shikoyat yuborildi. Ko'rib chiqamiz.",
+      'report_error': "Shikoyatni yuborishda xatolik. Qayta urinib ko'ring.",
+      'block_user': "Foydalanuvchini bloklash",
+      'block_user_confirm':
+          "Bu foydalanuvchini bloklaysizmi? Ular sizning profilingizni ko'ra olmaydi.",
+      'block_sent': "Foydalanuvchi bloklandi.",
 
       // Questions / FAQ
       'questions': "Savollar",
@@ -631,6 +647,22 @@ class L10n {
       'error': "Хatolik",
       'error_load': "Маълумотларни юклашда хатолик юз берди",
       'error_generic': "Хатолик юз берди. Қайта уриниб кўринг.",
+      'rate_limit_jobs':
+          "Сиз 1 соат ичида жуда кўп иш жойлаштирдингиз. Илтимос, кейинроқ уриниб кўринг.",
+      'rate_limit_chats':
+          "Сиз жуда кўп суҳбат бошладингиз. Бир оздан кейин қайта уриниб кўринг.",
+      'report_job': "Эълонни шикоят қилиш",
+      'report_job_why': "Нима учун шикоят қиляпсиз?",
+      'report_spam': "Спам ёки реклама",
+      'report_fake': "Ёлғон/сохта эълон",
+      'report_offensive': "Ҳақоратли ёки нотўғри контент",
+      'report_other': "Бошқа сабаб",
+      'report_sent': "Шикоят юборилди. Кўриб чиқамиз.",
+      'report_error': "Шикоятни юборишда хатолик. Қайта уриниб кўринг.",
+      'block_user': "Фойдаланувчини блоклаш",
+      'block_user_confirm':
+          "Бу фойдаланувчини блоклайсизми? Улар сизнинг профилингизни кўра олмайди.",
+      'block_sent': "Фойдаланувчи блокланди.",
 
       // Questions / FAQ
       'questions': "Саволлар",
@@ -985,6 +1017,22 @@ class L10n {
       'error': "Ошибка",
       'error_load': "Ошибка при загрузке данных",
       'error_generic': "Произошла ошибка. Попробуйте ещё раз.",
+      'rate_limit_jobs':
+          "Вы разместили слишком много вакансий за 1 час. Попробуйте позже.",
+      'rate_limit_chats':
+          "Вы начали слишком много чатов. Попробуйте чуть позже.",
+      'report_job': "Пожаловаться на объявление",
+      'report_job_why': "Причина жалобы?",
+      'report_spam': "Спам или реклама",
+      'report_fake': "Поддельное объявление",
+      'report_offensive': "Оскорбительный контент",
+      'report_other': "Другая причина",
+      'report_sent': "Жалоба отправлена. Мы рассмотрим её.",
+      'report_error': "Ошибка при отправке жалобы. Попробуйте ещё раз.",
+      'block_user': "Заблокировать пользователя",
+      'block_user_confirm':
+          "Заблокировать этого пользователя? Он больше не увидит ваш профиль.",
+      'block_sent': "Пользователь заблокирован.",
 
       // Questions / FAQ
       'questions': "Вопросы",
@@ -1342,6 +1390,22 @@ class L10n {
       'error': "Error",
       'error_load': "Failed to load data",
       'error_generic': "Something went wrong. Please try again.",
+      'rate_limit_jobs':
+          "You have posted too many jobs in the last hour. Please try again later.",
+      'rate_limit_chats':
+          "You have started too many chats. Please try again in a moment.",
+      'report_job': "Report job",
+      'report_job_why': "Why are you reporting this?",
+      'report_spam': "Spam or advertisement",
+      'report_fake': "Fake or misleading job",
+      'report_offensive': "Offensive or inappropriate content",
+      'report_other': "Other reason",
+      'report_sent': "Report submitted. We will review it.",
+      'report_error': "Failed to submit report. Please try again.",
+      'block_user': "Block user",
+      'block_user_confirm':
+          "Block this user? They will no longer be able to see your profile.",
+      'block_sent': "User blocked.",
 
       // Questions / FAQ
       'questions': "Questions",

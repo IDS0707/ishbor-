@@ -76,7 +76,7 @@ class _HomeScreenState extends State<HomeScreen> {
       (_selectedRegion != 'all' ? 1 : 0) +
       (_selectedEmpType != 'all' ? 1 : 0);
 
-  void _openFilterSheet() {
+  void _openFilterSheet(List<String> activeCats) {
     final isDark = appThemeMode.value == ThemeMode.dark;
     String tempCat = _selectedCategory;
     String tempReg = _selectedRegion;
@@ -355,7 +355,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           crossAxisSpacing: 10,
                           mainAxisSpacing: 10,
                           children:
-                              ['all', ...kCategories].map(catCard).toList(),
+                              ['all', ...activeCats].map(catCard).toList(),
                         ),
                         const SizedBox(height: 28),
                         // ── Region ────────────────────────────────────
@@ -653,7 +653,7 @@ class _HomeScreenState extends State<HomeScreen> {
       // ── Body ─────────────────────────────────────────────────────────────
       body: ResponsiveBody(
           child: StreamBuilder<List<Job>>(
-        stream: FirestoreService.jobsStream(),
+        stream: FirestoreService.jobsStream(limit: 100),
         builder: (context, snapshot) {
           if (snapshot.hasError) {
             return Center(
@@ -670,6 +670,9 @@ class _HomeScreenState extends State<HomeScreen> {
           }
 
           final allJobs = snapshot.data!;
+          final activeCats = kCategories
+              .where((cat) => allJobs.any((j) => j.category == cat))
+              .toList();
           final filteredAll = _filterJobs(allJobs);
           final filteredSaved = _filterJobs(
               allJobs.where((j) => _savedIds.contains(j.id)).toList());
@@ -735,7 +738,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     const SizedBox(width: 10),
                     // Filter icon button
                     GestureDetector(
-                      onTap: _openFilterSheet,
+                      onTap: () => _openFilterSheet(activeCats),
                       child: Stack(
                         clipBehavior: Clip.none,
                         children: [

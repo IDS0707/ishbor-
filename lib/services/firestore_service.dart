@@ -482,4 +482,42 @@ class FirestoreService {
     results.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
     return results;
   }
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // ANTI-SPAM / RATE LIMITING
+  // ══════════════════════════════════════════════════════════════════════════
+
+  /// Returns the number of jobs posted by [uid] in the last [windowMinutes].
+  /// Use this before [addJob] to enforce a per-user rate limit.
+  ///
+  /// Recommended limit: no more than 5 new jobs per 60 minutes.
+  static Future<int> recentJobCount(String uid,
+      {int windowMinutes = 60}) async {
+    final since = DateTime.now().subtract(Duration(minutes: windowMinutes));
+    final snap = await FirebaseFirestore.instance
+        .collection('jobs')
+        .where('postedByUid', isEqualTo: uid)
+        .limit(10)
+        .get();
+    return snap.docs.where((d) {
+      final ts = d.data()['createdAt'] as Timestamp?;
+      return ts != null && ts.toDate().isAfter(since);
+    }).length;
+  }
+
+  /// Returns the number of chat threads initiated by [seekerUid] in the last
+  /// [windowMinutes]. Use this before [initChat] to limit spam messages.
+  ///
+  /// Recommended limit: no more than 20 new chats per 60 minutes.
+  static Future<int> recentChatCount(String seekerUid,
+      {int windowMinutes = 60}) async {
+    final since = Timestamp.fromDate(
+        DateTime.now().subtract(Duration(minutes: windowMinutes)));
+    final snap = await _chats
+        .where('seekerUid', isEqualTo: seekerUid)
+        .where('lastAt', isGreaterThan: since)
+        .count()
+        .get();
+    return snap.count ?? 0;
+  }
 }
